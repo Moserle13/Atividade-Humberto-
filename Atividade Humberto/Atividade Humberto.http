@@ -1,0 +1,6 @@
+@Atividade_Humberto_HostAddress = http://localhost:5195
+
+GET {{Atividade_Humberto_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
