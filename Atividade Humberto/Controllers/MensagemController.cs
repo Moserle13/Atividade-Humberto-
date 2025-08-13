@@ -4,51 +4,64 @@ namespace MeuProjeto.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class FreteController : ControllerBase
+    public class PessoaController : ControllerBase
     {
-        public class ProdutoFreteDTO
+        // DTO para receber os dados da pessoa
+        public class PessoaDTO
         {
-            public string NomeProduto { get; set; }
-            public float Peso { get; set; }
-            public float Altura { get; set; }
-            public float Largura { get; set; }
-            public float Comprimento { get; set; }
-            public string UF { get; set; }
+            public string Nome { get; set; }
+            public double Peso { get; set; } // em kg
+            public double Altura { get; set; } // em metros
         }
 
-        [HttpPost("calcular-frete")]
-        public IActionResult CalcularFrete([FromBody] ProdutoFreteDTO produto)
+        // DTO para o retorno
+        public class ImcResultado
         {
-            if (string.IsNullOrWhiteSpace(produto.NomeProduto) ||
-                produto.Altura <= 0 || produto.Largura <= 0 || produto.Comprimento <= 0 || produto.Peso <= 0)
+            public string Nome { get; set; }
+            public double IMC { get; set; }
+        }
+
+        // a) Ação para calcular o IMC
+        [HttpPost("calcular-imc")]
+        public IActionResult CalcularIMC([FromBody] PessoaDTO pessoa)
+        {
+            if (pessoa.Peso <= 0 || pessoa.Altura <= 0)
+                return BadRequest("Peso e altura devem ser maiores que zero.");
+
+            double imc = pessoa.Peso / (pessoa.Altura * pessoa.Altura);
+
+            var resultado = new ImcResultado
             {
-                return BadRequest("Todos os campos devem ser informados corretamente.");
-            }
+                Nome = pessoa.Nome,
+                IMC = Math.Round(imc, 2) // arredonda para 2 casas decimais
+            };
 
-            float volume = produto.Altura * produto.Largura * produto.Comprimento;
+            return Ok(resultado);
+        }
 
-            float taxaEstado;
-            switch (produto.UF.ToUpper())
-            {
-                case "SP": taxaEstado = 50.00f; break;
-                case "RJ": taxaEstado = 60.00f; break;
-                case "MG": taxaEstado = 55.00f; break;
-                default: taxaEstado = 70.00f; break;
-            }
+        // b) Ação para consultar a tabela do IMC
+        [HttpGet("consulta-tabela-imc")]
+        public IActionResult ConsultaTabelaIMC([FromQuery] double imc)
+        {
+            string classificacao;
 
-            float taxaPorCm3 = 0.01f;
-
-            float valorFrete = (volume * taxaPorCm3) + taxaEstado;
+            if (imc < 18.5)
+                classificacao = "Abaixo do peso";
+            else if (imc >= 18.5 && imc < 24.9)
+                classificacao = "Peso normal";
+            else if (imc >= 25 && imc < 29.9)
+                classificacao = "Sobrepeso";
+            else if (imc >= 30 && imc < 34.9)
+                classificacao = "Obesidade Grau I";
+            else if (imc >= 35 && imc < 39.9)
+                classificacao = "Obesidade Grau II";
+            else
+                classificacao = "Obesidade Grau III (mórbida)";
 
             return Ok(new
             {
-                Produto = produto.NomeProduto,
-                PesoKg = produto.Peso,
-                VolumeCm3 = volume,
-                Estado = produto.UF.ToUpper(),
-                TaxaEstado = taxaEstado,
-                TaxaPorCm3 = taxaPorCm3,
-                ValorTotalFrete = Math.Round(valorFrete, 2)
+                IMC = imc,
+                Classificacao = classificacao
             });
         }
     }
